@@ -18,7 +18,7 @@ class LinearRegressionClassifier(RegressionClassifier):
         self.cost_func = []
         self.theta0_iter = []
         self.theta1_iter = []
-
+        self.theta = np.zeros(num_variables)
 
     # Training data is in the form of a numpy array with 2 dimensions.
     # y, x
@@ -26,22 +26,37 @@ class LinearRegressionClassifier(RegressionClassifier):
         self.num_training_data = len(training_data)
         self.training_data = training_data
 
-    def set_initial_parameters(self, theta0, theta1):
-        self.theta0 = theta0
-        self.theta1 = theta1
+        training_data_shape = self.training_data.shape
+        if (len(training_data_shape) <= 1):
+            raise Exception("Expected 2D training data set")
+
+        if (training_data_shape[1] != self.num_variables + 1):
+            raise Exception("Insufficient number of variables provided")
+
+        # Add a column of 1's for theta0 just following y
+        self.training_data = np.insert(self.training_data, 1, 1, axis=1)
+
+    def set_initial_parameters(self, theta):
+        self.theta = theta
 
     def set_learning_rate(self, learning_rate):
         self.learning_rate = learning_rate
 
-    def compute_func(self, theta0, theta1, x):
-        return theta0 + theta1 * x
+    def compute_func(self, theta, x):
+        result = 0
+        if (theta.shape[0] != x.shape[0]):
+            raise Exception("Unexpected shape of theta or x parameters")
 
-    def compute_cost_func(self, theta0, theta1):
+        per_element_sum = theta * x
+        result = np.sum(per_element_sum)
+        return result
+
+    def compute_cost_func(self, theta):
         cost = 0
         for i, ith_training_data in enumerate(self.training_data):
             y_i = ith_training_data[0]
-            x_i = ith_training_data[1]
-            cost += pow((self.compute_func(theta0, theta1, x = x_i) - y_i), 2)
+            x_i = ith_training_data[1:]
+            cost += pow((self.compute_func(theta, x = x_i) - y_i), 2)
 
         cost = (1 / (2 * self.num_training_data)) * cost
         return cost
@@ -75,6 +90,7 @@ class LinearRegressionClassifier(RegressionClassifier):
         # Set the initial difference to max infinity
         theta0_diff = sys.maxsize
         theta1_diff = sys.maxsize
+        theta_diff = np.full(len(self.theta), sys.maxsize)
 
         iteration = 0
 
@@ -85,31 +101,27 @@ class LinearRegressionClassifier(RegressionClassifier):
         self.theta1_iter = []
         self.cost_func   = []
 
-        while (theta0_diff > self.threshold or theta1_diff > self.threshold):
-            derivative_theta0 = 0
-            derivative_theta1 = 0
+        while (np.greater(theta_diff, self.threshold).any()):
+            derivative_theta_i = np.zeros(len(self.theta))
 
             for i, ith_training_data in enumerate(self.training_data):
                 y_i = ith_training_data[0]
-                x_i = ith_training_data[1]
-                derivative_theta0 += (self.compute_func(theta0 = self.theta0, theta1 = self.theta1, x = x_i) - y_i)
-                derivative_theta1 += (self.compute_func(theta0 = self.theta0, theta1 = self.theta1, x = x_i) - y_i) * x_i
+                x_i = ith_training_data[1:]
+                derivative_theta_i += x_i * (self.compute_func(theta = self.theta, x = x_i) - y_i)
 
-            theta0_new = self.theta0 - (1 / self.num_training_data) * self.learning_rate * derivative_theta0
-            theta1_new = self.theta1 - (1 / self.num_training_data) * self.learning_rate * derivative_theta1
+            theta_new = self.theta - (1 / self.num_training_data) * self.learning_rate * derivative_theta_i
 
-            theta0_diff = abs(theta0_new - self.theta0)
-            self.theta0 = theta0_new
-            theta1_diff = abs(theta1_new - self.theta1)
-            self.theta1 = theta1_new
+            theta_diff = abs(theta_new - self.theta)
 
-            self.theta0_iter.append(self.theta0)
-            self.theta1_iter.append(self.theta1)
+            # self.theta0_iter.append(self.theta0)
+            # self.theta1_iter.append(self.theta1)
             # Update the cost function
-            self.cost_func.append(self.compute_cost_func(self.theta0, self.theta1))
+            self.cost_func.append(self.compute_cost_func(self.theta))
 
-            print("Iteration: %s Theta0: %s Theta1: %s" % (iteration, self.theta0, self.theta1))
+            self.theta = theta_new
+
+            print("Iteration: %s Theta0: %s Theta1: %s" % (iteration, self.theta[0], self.theta[1]))
             iteration += 1
 
         print("Original: theta0: %s          theta1: %s" % (original_theta0, original_theta1))
-        print("My Guess: theta0: %s          theta1: %s" % (self.theta0, self.theta1))
+        print("My Guess: theta0: %s          theta1: %s" % (self.theta[0], self.theta[1]))
