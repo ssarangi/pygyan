@@ -1,3 +1,6 @@
+# Project Imports
+from RegressionClassifier import RegressionClassifier
+
 import numpy as np
 import math
 import sys
@@ -7,16 +10,15 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import matplotlib.pyplot as plt
 import numpy as np
 
-class LinearRegressionClassifier:
-    def __init__(self, learning_rate, threshold):
-        self.num_vars = 1
-        self.threshold = threshold
-        self.learning_rate = learning_rate
+class LinearRegressionClassifier(RegressionClassifier):
+    def __init__(self, num_variables, learning_rate, threshold):
+        RegressionClassifier.__init__(self, num_variables=num_variables, learning_rate=learning_rate, threshold=threshold)
         self.theta0 = 0
         self.theta1 = 0
         self.cost_func = []
         self.theta0_iter = []
         self.theta1_iter = []
+
 
     # Training data is in the form of a numpy array with 2 dimensions.
     # y, x
@@ -45,7 +47,6 @@ class LinearRegressionClassifier:
         return cost
 
     def plot_contour_graph(self):
-        # cost_values = np.zeros((len(self.theta0_iter), len(self.theta0_iter)))
         cost_values = np.zeros((100, 100))
 
         min_theta0 = min(self.theta0_iter)
